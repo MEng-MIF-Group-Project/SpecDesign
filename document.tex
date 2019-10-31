@@ -1,0 +1,273 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[a4paper, left=2cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}
+\pagenumbering{gobble}
+\usepackage[shortlabels]{enumitem}   
+\usepackage{calc}
+\usepackage{pgfgantt}
+\usepackage{pdflscape}
+\usepackage{titling}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{pdfpages}
+\usepackage{blkarray}
+\usepackage{multicol}
+
+%opening
+\title{MEng Group Project Specification \& Design}
+\author{Cristian Badoi, Aaron Butterworth, Daniel Gardam}
+\date{}
+
+\setlength{\parindent}{0pt}
+\renewcommand*{\thesection}{\arabic{section}}
+\begin{document}
+\maketitle
+
+\section{Project Summary}
+The aim of this project is to create a system capable of calculating, storing and predicting formulae of chemical compounds given a set of precursors, with a focus on optimization and finding an acceptable solution within a given set of bounds. The program is designed to be remotely accessible, with a web server providing a user front end and a space for necessary calculations, and a database for the purposes of storing chemical data and user account information. \\
+
+The project will primarily use C++ for computation, NodeJS with several popular packages for the web server and user interface, and MongoDB for the database system. \\
+
+This project is produced in conjunction with the Materials Innovation Factory and is intended for their use. The development and evaluation of the project will be performed in cooperation with the facility. \\
+
+This project is mainly based on the prior research topics and problems encountered by researchers in the MIF, for example having a person test possible compounds and slowly refine the formula based on their results is a time and material inefficient process, therefore if we can suggest compounds which are either direct results or very close approximations to their desired outcome then this process can be minimised. \\
+
+\section{Design Overview}
+\subsection{Expected Components}
+\subsubsection{Web Server}
+The main interface to the system will be supplied by a web server to allow easy and portable access by members of the MIF. The web facing part of the system will be comprised of several smaller packages all working together under NodeJS:
+
+\begin{enumerate}[label = {}, leftmargin=\widthof{Express |}+\labelsep]
+	\item[NodeJS |] A JavaScript runtime that allows execution of JS outside the context of a web browser. 
+	
+	\item[Express |] An open source web application framework for NodeJS, it is responsible for the high level web server logic and allows a high level interface to web traffic as it handles response codes, etc. itself.
+	
+	\item[Pug |] An open source high-performance template engine, it allows us to alter the contents of a web page just before serving it to the user, allowing for finer levels of customisation while keeping the code base manageable.
+\end{enumerate}
+\pagebreak
+\begin{enumerate}[label = {}, leftmargin=\widthof{Express-Session |}+\labelsep]	
+	\item[Express-Session |] An add-on for express that gives us easy control of user sessions. This allows us to keep track of user specific data, such as preferred precursors or recently searched compounds.
+	
+	\item[bCrypt2 |] A widely trusted package for providing user password encryption.
+\end{enumerate}
+
+\subsubsection{Computation}
+The actual computation will be handled by C++ programs with some small python helper scripts for unit conversion and other pre/post processing. \\
+
+This is done for several reasons, firstly to allow a significant performance increase over JS; secondly to allow us access to widely known mathematics libraries; and thirdly to allow easier modification of the source code by others in the MIF as these are their preferred languages as opposed to JS, this is also the start of an ongoing project which will be maintained and expanded upon after us so maintainability is an important factor. \\
+
+The first step of computation is the stoichiometry calculator. This takes a selection of user defined elements, and then calculate all possible balanced compounds that may be produced by a chemical reaction of these elements. This process also takes into account user limits such as the maximum amount of atoms in the resulting combination to refine the search and prevent the creation of a technically correct but practically unreasonable result. \\
+
+The programs data sources are the web interface which will invoke the users query and the database for relevant information about each element, its output is piped back to NodeJS where it may be cached in the database if it is a common search, the result is then displayed to the user via the web interface. \\
+
+The second stage is the precursor calculator. Its input is a desired ratio of elements, and a set of available chemical precursors. It calculates possible combinations and quantities of the precursors that when mixed together create the desired target ratio. User bounds may also be given to keep the results practically usable.
+
+
+\subsubsection{Database}
+With the theme of future expansion the database will be hosted on a separate server instance running independently of the NodeJS process, this allows for easier expansion of the system if it cannot handle the user load placed on it as both the web server and database can be scaled completely separately from each other without modification to the program code. \\ 
+
+The database will not only store the information needed to run calculations, but will also store the solutions to commonly executed combinations so as to reduce the computational demand by allowing these solutions to be quickly retrieved rather than repeatedly calculated.
+\pagebreak
+
+\section{Algorithm Design}
+\subsection{Stoichiometry Calculator}
+The queried elements are transformed into a matrix with the following properties:
+
+\begin{center}
+	If the user selected Al and O with a limit of 5 atoms in the result:
+\end{center}
+\begin{equation*}
+	\mathbf{A}=
+	\begin{blockarray}{*{2}{c} l}
+		\begin{block}{*{2}{>{$\footnotesize}c<{$}} l}
+			Al & O  \\
+		\end{block}
+		\begin{block}{[*{2}{c}]>{$\footnotesize}l<{$}}
+			1 & 1 & Initial Quantity \\
+			3 & -2 & Charge Imbalance \\
+		\end{block}
+	\end{blockarray}
+\end{equation*}
+\begin{equation*}
+	\mathbf{B}=
+		\begin{blockarray}{*{1}{c} l}
+		\begin{block}{[*{1}{c}]>{$\footnotesize}l<{$}}
+			1 &  Resulting Proportion \\
+			0 &  Desired Charge Imbalance \\
+		\end{block}
+	\end{blockarray}
+\end{equation*}
+\begin{equation*}
+	\begin{bmatrix}
+	1 & 1 \\
+	3 & -2
+	\end{bmatrix}
+	\times
+	\begin{bmatrix}
+	x_1 \\
+	x_2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	1 \\
+	0 
+	\end{bmatrix}
+\end{equation*}
+
+\vspace*{0.5em}
+This gives us the matrix form of the system of equations we must solve. However the charge imbalance in the matrix $\mathbf{A}$ is not constant for all elements, in this example $O$ can exists with $-2, -1, +1, +2$ as its charge, solving the equations above only allows for $Al_2O_3$. Therefore we must also consider all permutations of element charges, in this example $O$ has a total of 4 states, and $Al$ a total of 3 giving a total of 132 permutations. \\
+
+However, each permutation is quick to solve. Continuing the above example:
+
+\vspace{1.5em}
+
+\begin{minipage}{0.4\textwidth}
+	\begin{center}
+		Via LU decomposition:
+	\end{center}
+	\begin{equation*}
+	\begin{bmatrix}
+	1 & 1 \\
+	3 & -2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	1 & 0 \\
+	3 & 1
+	\end{bmatrix}
+	\times
+	\begin{bmatrix}
+	1 & 1\\
+	0 & -5
+	\end{bmatrix}
+	\end{equation*}
+	
+	\begin{equation*}
+	\begin{bmatrix}
+	1 & 0 \\
+	3 & 1
+	\end{bmatrix}
+	\times
+	\begin{bmatrix}
+	y_1 \\
+	y_2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	1 \\
+	0
+	\end{bmatrix}
+	\end{equation*}
+	
+	\begin{equation*}
+	\begin{bmatrix}
+	y_1 \\
+	y_2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	1 \\
+	-3
+	\end{bmatrix}
+	\end{equation*}
+	
+	\begin{equation*}
+	\begin{bmatrix}
+	1 & 1 \\
+	0 & -5
+	\end{bmatrix}
+	\times
+	\begin{bmatrix}
+	x_1 \\
+	x_2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	1 \\
+	-3
+	\end{bmatrix}
+	\end{equation*}
+	
+	\begin{equation*}
+	\begin{bmatrix}
+	x_1 \\
+	x_2
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	0.4 \\
+	0.6
+	\end{bmatrix}
+	\end{equation*}
+\end{minipage}
+\hfill
+\begin{minipage}{0.6\textwidth}
+	While the example seems trivial when many elements are selected the system of equations grows rapidly and the merits of this method become more apparent. \\
+	
+	
+\end{minipage}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{landscape}
+	\null
+	\vfill
+	\vspace{-2cm}
+	\begin{center}
+		\hspace{-1.5cm}
+		\begin{ganttchart}[ 
+			hgrid, vgrid, 
+			x unit=0.65cm, 
+			y unit chart=0.6cm,
+			bar label font=\footnotesize]{1}{33}
+			\gantttitlelist{1,...,12}{1} 
+			\gantttitle{Christmas}{3} 
+			\gantttitle{Exams}{3}
+			\gantttitlelist{1,...,10}{1} 
+			\gantttitle{Easter}{3} 
+			\gantttitlelist{11,...,12}{1} \\
+			
+			\ganttset{progress label text={}, progress=0}
+			
+			\ganttbar[]{Research}{1}{3} \\
+			\ganttlinkedbar[]{Design}{4}{8} \\
+			\ganttbar[name=SUH]{Setting Up Hardware}{4}{8} \\
+			
+			\ganttmilestone{Design Deadline}{8} \\
+			
+			
+			\ganttbar[name=PDC]{Program Drone Controller}{9}{12} \\
+			\ganttbar[name=PAIS]{Program AI Subsystem}{9}{12} \\
+			\ganttbar[]{Gather Data}{9}{10} \\
+			\ganttlinkedbar[name=PD]{Process Data}{11}{12} \\
+			
+			\ganttmilestone{Progress Report}{21} \\
+			
+			\ganttbar[name=TA]{Train \& Evaluate AI}{19}{21} \\
+			\ganttlink{PAIS}{TA}
+			\ganttlink{PD}{TA}
+			\ganttlink{PDC}{TA}
+			
+			\ganttbar[name=OPT]{Optimisation of AI Controller}{22}{24} \\ 
+			\ganttlink{TA}{OPT}
+			
+			\ganttlinkedbar[]{3rd Party Evaluation}{25}{26} \\
+			\ganttlinkedbar[]{Finalisation of Report}{27}{28}
+			\ganttbar[]{}{32}{33} \\
+			
+			\ganttmilestone{Project Report}{33}
+		\end{ganttchart}
+	\end{center}
+	\vfill
+\end{landscape}
+
+\end{document}
