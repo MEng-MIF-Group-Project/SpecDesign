@@ -410,56 +410,101 @@ This allows the memory heavy segment of the system to only take up space in RAM 
 \subsection{Computation}
 The primary data structure in use during the computational stages are matrices, they are used to store the coefficients that represent the system of equations we have generated and will then solve. The software does occasionally cache small amounts of data for its own use, this is not stored in the database and is instead written and read as comma separated values in text files.
 
-%\begin{landscape}
-%	\null
-%	\vfill
-%	\vspace{-2cm}
-%	\begin{center}
-%		\hspace{-1.5cm}
-%		\begin{ganttchart}[ 
-%			hgrid, vgrid, 
-%			x unit=0.65cm, 
-%			y unit chart=0.6cm,
-%			bar label font=\footnotesize]{1}{33}
-%			\gantttitlelist{1,...,12}{1} 
-%			\gantttitle{Christmas}{3} 
-%			\gantttitle{Exams}{3}
-%			\gantttitlelist{1,...,10}{1} 
-%			\gantttitle{Easter}{3} 
-%			\gantttitlelist{11,...,12}{1} \\
-%			
-%			\ganttset{progress label text={}, progress=0}
-%			
-%			\ganttbar[]{Research}{1}{3} \\
-%			\ganttlinkedbar[]{Design}{4}{8} \\
-%			\ganttbar[name=SUH]{Setting Up Hardware}{4}{8} \\
-%			
-%			\ganttmilestone{Design Deadline}{8} \\
-%			
-%			
-%			\ganttbar[name=PDC]{Program Drone Controller}{9}{12} \\
-%			\ganttbar[name=PAIS]{Program AI Subsystem}{9}{12} \\
-%			\ganttbar[]{Gather Data}{9}{10} \\
-%			\ganttlinkedbar[name=PD]{Process Data}{11}{12} \\
-%			
-%			\ganttmilestone{Progress Report}{21} \\
-%			
-%			\ganttbar[name=TA]{Train \& Evaluate AI}{19}{21} \\
-%			\ganttlink{PAIS}{TA}
-%			\ganttlink{PD}{TA}
-%			\ganttlink{PDC}{TA}
-%			
-%			\ganttbar[name=OPT]{Optimisation of AI Controller}{22}{24} \\ 
-%			\ganttlink{TA}{OPT}
-%			
-%			\ganttlinkedbar[]{3rd Party Evaluation}{25}{26} \\
-%			\ganttlinkedbar[]{Finalisation of Report}{27}{28}
-%			\ganttbar[]{}{32}{33} \\
-%			
-%			\ganttmilestone{Project Report}{33}
-%		\end{ganttchart}
-%	\end{center}
-%	\vfill
-%\end{landscape}
+\section{Interface Design}
+The main user interface is provided via the web server, we have opted for a single page style design: the further down the page you go, the more in-depth the data. \\
 
+The top of the page displays a periodic table a user can use to enter elements they would like to pass to the stoichiometry calculator who's result will be displayed below the periodic table as it is the next level of detail.\\
+
+Next the user can select a desired final ratio of elements and a set of precursors they have avalible from the stoichiometry calculator, this will then trigger the precursor calculator who's results will be displayed graphically as either a 2d or 3d triangle/pyramid. This visualisation will be rendered using WebGL in order to allow us to have an interactive 3d environment. \\
+
+The user will then be able to explore possible solutions via the visualisation, selecting a point then a direction to move in, more possible solutions in their desired direction will be generated and displayed allowing them to find a good ratio for their own uses, be this quantities of precursor avalible or ease of measurement.
+
+\subsection{User Data}
+A user will be able to login if they choose to, accounts are not required. Logging in will offer benefits such as previous searches being remembered and the ability to define preferred precursors which will be displayed separately to the generated precursors to allow easier selection of the precursors they will be using most often.\\
+
+Users accounts data will be protected by bCrypt2 and on disk encryption if possible. Also enforcing a HTTPS connection to the website should ensure password security, as the amount of user provided text is low there is little opportunity for SQL injection, most of the users interaction with the server is via click-able GUI elements which provide a minimal security risk.
+
+\section{Evaluation Design}
+The system will mainly be evaluated by personnel in the MIF as they have collectively commissioned the system to be build, participation in this evaluation will be optional and informal aside from a selected group from the project group itself. With this select group we will collect more in-depth data in the form of questionnaires. \\
+
+\subsection{Ethical Use Of Human Participants}
+As with one of our undergraduate projects data from members of the project group does not constitute 3rd party evaluation, and with non-project team members we will be strictly following the CS Department ethical procedure for MEng project 3rd party evaluation. All other data used in the project is well known public data regarding the behaviour of elements. \\
+
+We believe the combination of these factors allows us to proceed without further application for research ethics approval.
+
+\section{Timeline and Evaluation Against Design}
+\subsection{Intended Timeline}
+\begin{center}
+	\hspace{-1.5cm}
+	\begin{ganttchart}[ 
+		hgrid, vgrid, 
+		x unit=0.65cm, 
+		y unit chart=0.6cm,
+		link mid=0.5,
+		bar label font=\footnotesize]{1}{12}
+		\gantttitlelist{1,...,12}{1} \\
+		
+		\ganttset{progress label text={}, progress=0}
+		
+		\ganttbar[]{Research}{1}{3} \\
+		\ganttbar[]{Design}{3}{4} \\
+		\ganttbar[name=COMP]{Computation section programming}{5}{6} \\
+		\ganttbar[name=DB]{Database Implementation}{6}{7} \\
+		
+		\ganttmilestone{Design Deadline}{6} \\
+		
+		\ganttbar[name=VER]{Verification with MIF}{8}{8} \\
+		\ganttbar[name=WGL]{WebGL Visualisation Implementation}{8}{9} \\
+		\ganttbar[name=WS]{Web Server Implementation}{9}{10} \\
+		
+		\ganttmilestone{Progress Report}{10} \\
+		
+		\ganttbar[]{Evaluation}{11}{12} \\
+		
+		\ganttmilestone{Project Report}{12}
+	\end{ganttchart}
+\end{center}
+
+Components will be tested in an ongoing fashion before and after their integration into the main system, we have gathered useful testing data from the MIF personnel and will continue to seek their input for edge cases and other testing data.
+
+\subsection{Evaluation Against Design}
+\begin{center}
+	\hspace{-1.5cm}
+	\begin{ganttchart}[ 
+		hgrid, vgrid, 
+		x unit=0.65cm, 
+		y unit chart=0.6cm,
+		link mid=0.5,
+		bar label font=\footnotesize]{1}{12}
+		\gantttitlelist{1,...,12}{1} \\
+		
+		\ganttset{progress label text={}, progress=0}
+		
+		\ganttbar[progress=100]{Research}{1}{3} \\
+		\ganttbar[progress=100]{Design}{3}{4} \\
+		\ganttbar[progress=100, name=COMP]{Computation section programming}{5}{6} \\
+		\ganttbar[name=DB]{Database Implementation}{6}{7} \\
+		
+		\ganttmilestone[progress=100]{Design Deadline}{6} \\
+		
+		\ganttbar[progress=10, name=VER]{Verification with MIF}{8}{8} \\
+		\ganttbar[progress=10, name=WGL]{WebGL Visualisation Implementation}{8}{9} \\
+		\ganttbar[progress=50, name=WS]{Web Server Implementation}{9}{10} \\
+		
+		\ganttmilestone{Progress Report}{10} \\
+		
+		\ganttbar[]{Evaluation}{11}{12} \\
+		
+		\ganttmilestone{Project Report}{12}
+		\ganttvrule{Today}{6}
+	\end{ganttchart}
+\end{center}
+
+As shown above the focus shifted from having the database implemented early to the web server, this should allow us to move evaluation forwards too as we will have a tangible system early than expected. Ideally this will allow us to gather more feedback and further refine the design and operation of the system. \\
+
+This is in part due to the publicly avalible element data already being in an easily to parse format, therefore integrating it into the database is not a priority, the other use for the database is caching results which is not important until the system is under more load than testing provides. \\
+
+In addition to this it provides more reliable testing as we know we are viewing newly computed data instead of a chance of cached information from a previous query. \\
+
+Other than what is stated above there are no major changes to the design, however we are in frequent contact with the MIF so any early feedback on our concepts may alter it after writing. 
 \end{document}
